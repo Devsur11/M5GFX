@@ -233,10 +233,10 @@ protected:
   };
 
   #if defined (LGFX_FILESYSTEM_SD)
-  template <>
-  struct DataWrapperT<fs::SDFS> : public DataWrapperT<fs::FS> {
-    DataWrapperT(fs::FS* fs, fs::File* fp = nullptr) : DataWrapperT<fs::FS>(fs, fp) {}
-  };
+  // template <>
+  // struct DataWrapperT<fs::SDFS> : public DataWrapperT<fs::FS> {
+  //   DataWrapperT(fs::FS* fs, fs::File* fp = nullptr) : DataWrapperT<fs::FS>(fs, fp) {}
+  // };
   #endif
   #if defined (LGFX_FILESYSTEM_SDMMC)
   template <>
