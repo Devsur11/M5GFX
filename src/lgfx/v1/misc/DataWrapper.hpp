@@ -25,6 +25,7 @@ Contributors:
 #include <stddef.h>
 #include <string.h>
 #include "../../utility/pgmspace.h"
+#include <SD.h>
 
 namespace lgfx
 {
@@ -100,54 +101,48 @@ namespace lgfx
 
 //----------------------------------------------------------------------------
 
-#if defined (__FILE_defined) || defined (_FILE_DEFINED) || defined (_FSTDIO)
-  template <>
-  struct DataWrapperT<FILE> : public DataWrapper
-  {
-    DataWrapperT(FILE* fp = nullptr) : DataWrapper() , _fp { fp }
-    {
-      need_transaction = true;
-    }
-#if defined (__STDC_WANT_SECURE_LIB__)
-    bool open(const char* path) override {
-      while (0 != fopen_s(&_fp, path, "rb") && path[0] == '/')
-      { ++path; }
-      return _fp;
-    }
-#else
-    bool open(const char* path) override {
-      while (nullptr == (_fp = fopen(path, "rb")) && path[0] == '/')
-      { ++path; }
-      return _fp;
-    }
-#endif
-    int read(uint8_t *buf, uint32_t len) override { return fread((char*)buf, 1, len, _fp); }
-    void skip(int32_t offset) override { seek(offset, SEEK_CUR); }
-    bool seek(uint32_t offset) override { return seek(offset, SEEK_SET); }
-    bool seek(uint32_t offset, int origin) { return fseek(_fp, offset, origin); }
-    void close(void) override { if (_fp) { fclose(_fp); _fp = nullptr; } }
-    int32_t tell(void) override { return ftell(_fp); }
-  protected:
-    FILE* _fp;
-  };
+//----------------------------------------------------------------------------
 
-  template <>
-  struct DataWrapperT<void> : public DataWrapperT<FILE>
-  {
-    DataWrapperT(void) : DataWrapperT<FILE>() {}
-  };
-#else
-  template <>
-  struct DataWrapperT<void> : public DataWrapper
-  {
-    DataWrapperT(void) : DataWrapper() { }
-    int read(uint8_t *buf, uint32_t len) override { return false; }
-    void skip(int32_t offset) override { }
-    bool seek(uint32_t offset) override { return false; }
-    bool seek(uint32_t offset, int origin) { return false; }
-    void close(void) override { }
-    int32_t tell(void) override { return 0; }
-  };
+#if defined (__FILE_defined) || defined (_FILE_DEFINED) || defined (_FSTDIO)
+  #include <FS.h>
+
+template <>
+struct DataWrapperT<fs::SDFS> : public DataWrapper
+{
+  DataWrapperT(fs::SDFS* fs = nullptr)
+  : DataWrapper(), _fs(fs) {}
+
+  bool open(const char* path) override {
+    if (!_fs) return false;
+    _file = _fs->open(path, FILE_READ);
+    return _file;
+  }
+
+  int read(uint8_t* buf, uint32_t len) override {
+    return _file.read(buf, len);
+  }
+
+  void skip(int32_t offset) override {
+    _file.seek(_file.position() + offset);
+  }
+
+  bool seek(uint32_t offset) override {
+    return _file.seek(offset);
+  }
+
+  void close(void) override {
+    if (_file) _file.close();
+  }
+
+  int32_t tell(void) override {
+    return _file.position();
+  }
+
+protected:
+  fs::SDFS* _fs = nullptr;
+  fs::File  _file;
+};
+
 #endif
 
 //----------------------------------------------------------------------------
@@ -322,7 +317,9 @@ namespace lgfx
   struct DataWrapperTFactoryT<void> : public DataWrapperFactory {
     DataWrapperTFactoryT(void) {}
     DataWrapperTFactoryT(void*) {}
-    DataWrapper* create(void) override { return new DataWrapperT<void>(); }
+    DataWrapper* create(void) override {
+  return new DataWrapperT<fs::SDFS>(&SD);
+}
   };
 
 //----------------------------------------------------------------------------
