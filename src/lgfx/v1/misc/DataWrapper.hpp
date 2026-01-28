@@ -145,6 +145,60 @@ protected:
 
 #endif
 
+#if defined(__has_include)
+  #if __has_include(<LittleFS.h>)
+    #include <LittleFS.h>
+  #endif
+#endif
+
+#if defined(ARDUINO) && defined(LITTLEFS_H)
+
+template <>
+struct DataWrapperT<fs::LittleFSFS> : public DataWrapper
+{
+  DataWrapperT(fs::LittleFSFS* fs = nullptr)
+  : DataWrapper(), _fs(fs) {}
+
+  bool open(const char* path) override
+  {
+    if (!_fs) return false;
+    _file = _fs->open(path, FILE_READ);
+    return _file;
+  }
+
+  int read(uint8_t* buf, uint32_t len) override
+  {
+    return _file.read(buf, len);
+  }
+
+  void skip(int32_t offset) override
+  {
+    _file.seek(_file.position() + offset);
+  }
+
+  bool seek(uint32_t offset) override
+  {
+    return _file.seek(offset);
+  }
+
+  void close(void) override
+  {
+    if (_file) _file.close();
+  }
+
+  int32_t tell(void) override
+  {
+    return _file.position();
+  }
+
+protected:
+  fs::LittleFSFS* _fs = nullptr;
+  fs::File        _file;
+};
+
+#endif
+
+
 //----------------------------------------------------------------------------
 
   struct PointerWrapper : public DataWrapper
