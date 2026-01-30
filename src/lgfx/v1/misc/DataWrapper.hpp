@@ -107,9 +107,9 @@ namespace lgfx
   #include <FS.h>
 
 template <>
-struct DataWrapperT<fs::SDFS> : public DataWrapper
+struct DataWrapperT<::fs::SDFS> : public DataWrapper
 {
-  DataWrapperT(fs::SDFS* fs = nullptr)
+  DataWrapperT(::fs::SDFS* fs = nullptr)
   : DataWrapper(), _fs(fs) {}
 
   bool open(const char* path) override {
@@ -139,8 +139,8 @@ struct DataWrapperT<fs::SDFS> : public DataWrapper
   }
 
 protected:
-  fs::SDFS* _fs = nullptr;
-  fs::File  _file;
+  ::fs::SDFS* _fs = nullptr;
+  ::fs::File  _file;
 };
 
 #endif
@@ -372,7 +372,7 @@ protected:
     DataWrapperTFactoryT(void) {}
     DataWrapperTFactoryT(void*) {}
     DataWrapper* create(void) override {
-  return new DataWrapperT<fs::SDFS>(&SD);
+  return new DataWrapperT<::fs::SDFS>(&SD);
 }
   };
 

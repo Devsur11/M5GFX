@@ -173,7 +173,6 @@ namespace lgfx
   void debug_memory_dump(const void* src, size_t len);
 
 //----------------------------------------------------------------------------
-
 #if defined (ARDUINO)
  #if defined (_SD_H_)
    #define LGFX_FILESYSTEM_SD SD
@@ -181,7 +180,8 @@ namespace lgfx
  #if defined (_SDMMC_H_)
    #define LGFX_FILESYSTEM_SDMMC SDMMC
  #endif
- #if defined (_LITTLEFS_H_) || defined (__LITTLEFS_H) || defined (_LiffleFS_H_)
+ // Fixed typo: _LittleFS_H_ (was _LiffleFS_H_)
+ #if defined (_LITTLEFS_H_) || defined (__LITTLEFS_H) || defined (_LittleFS_H_)
    #define LGFX_FILESYSTEM_LITTLEFS LittleFS
  #endif
  #if defined (_SPIFFS_H_)
@@ -198,24 +198,26 @@ namespace lgfx
   || defined (LGFX_FILESYSTEM_SPIFFS) \
   || defined (LGFX_FILESYSTEM_FFAT)
 
+  // Use ::fs::File
   template <>
-  struct DataWrapperT<fs::File> : public DataWrapper {
-    DataWrapperT(fs::File* fp = nullptr) : DataWrapper{}, _fp { fp } {
+  struct DataWrapperT<::fs::File> : public DataWrapper {
+    DataWrapperT(::fs::File* fp = nullptr) : DataWrapper{}, _fp { fp } {
       need_transaction = true;
     }
     int read(uint8_t *buf, uint32_t len) override { return _fp->read(buf, len); }
-    void skip(int32_t offset) override { _fp->seek(offset, fs::SeekCur); }
-    bool seek(uint32_t offset) override { return _fp->seek(offset, fs::SeekSet); }
-    bool seek(uint32_t offset, fs::SeekMode mode) { return _fp->seek(offset, mode); }
+    void skip(int32_t offset) override { _fp->seek(offset, ::fs::SeekCur); }
+    bool seek(uint32_t offset) override { return _fp->seek(offset, ::fs::SeekSet); }
+    bool seek(uint32_t offset, ::fs::SeekMode mode) { return _fp->seek(offset, mode); }
     void close(void) override { if (_fp) _fp->close(); }
     int32_t tell(void) override { return _fp->position(); }
 protected:
-    fs::File *_fp;
+    ::fs::File *_fp;
   };
 
+  // Use ::fs::FS and ::fs::File
   template <>
-  struct DataWrapperT<fs::FS> : public DataWrapperT<fs::File> {
-    DataWrapperT(fs::FS* fs, fs::File* fp = nullptr) : DataWrapperT<fs::File> { fp }, _fs { fs } {
+  struct DataWrapperT<::fs::FS> : public DataWrapperT<::fs::File> {
+    DataWrapperT(::fs::FS* fs, ::fs::File* fp = nullptr) : DataWrapperT<::fs::File> { fp }, _fs { fs } {
 #if defined (LGFX_FILESYSTEM_SD)
       need_transaction = (fs == &LGFX_FILESYSTEM_SD);
 #endif
@@ -223,43 +225,39 @@ protected:
     bool open(const char* path) override
     {
       _file = _fs->open(path, "r");
-      DataWrapperT<fs::File>::_fp = &_file;
+      DataWrapperT<::fs::File>::_fp = &_file;
       return _file;
     }
 
 protected:
-    fs::FS* _fs;
-    fs::File _file;
+    ::fs::FS* _fs;
+    ::fs::File _file;
   };
 
-  #if defined (LGFX_FILESYSTEM_SD)
-  // template <>
-  // struct DataWrapperT<fs::SDFS> : public DataWrapperT<fs::FS> {
-  //   DataWrapperT(fs::FS* fs, fs::File* fp = nullptr) : DataWrapperT<fs::FS>(fs, fp) {}
-  // };
-  #endif
   #if defined (LGFX_FILESYSTEM_SDMMC)
   template <>
-  struct DataWrapperT<fs::SDMMCFS> : public DataWrapperT<fs::FS> {
-    DataWrapperT(fs::FS* fs, fs::File* fp = nullptr) : DataWrapperT<fs::FS>(fs, fp) {}
+  struct DataWrapperT<::fs::SDMMCFS> : public DataWrapperT<::fs::FS> {
+    DataWrapperT(::fs::FS* fs, ::fs::File* fp = nullptr) : DataWrapperT<::fs::FS>(fs, fp) {}
   };
   #endif
   #if defined (LGFX_FILESYSTEM_SPIFFS)
   template <>
-  struct DataWrapperT<fs::SPIFFSFS> : public DataWrapperT<fs::FS> {
-    DataWrapperT(fs::FS* fs, fs::File* fp = nullptr) : DataWrapperT<fs::FS>(fs, fp) {}
+  struct DataWrapperT<::fs::SPIFFSFS> : public DataWrapperT<::fs::FS> {
+    DataWrapperT(::fs::FS* fs, ::fs::File* fp = nullptr) : DataWrapperT<::fs::FS>(fs, fp) {}
   };
   #endif
   #if defined (LGFX_FILESYSTEM_LITTLEFS)
+  // We use decltype here so the compiler automatically finds the correct class type
+  // whether it's named LittleFSFS, LittleFS_S3, or just FS.
   template <>
-  struct DataWrapperT<fs::LittleFSFS> : public DataWrapperT<fs::FS> {
-    DataWrapperT(fs::FS* fs, fs::File* fp = nullptr) : DataWrapperT<fs::FS>(fs, fp) {}
+  struct DataWrapperT<decltype(LGFX_FILESYSTEM_LITTLEFS)> : public DataWrapperT<::fs::FS> {
+    DataWrapperT(::fs::FS* fs, ::fs::File* fp = nullptr) : DataWrapperT<::fs::FS>(fs, fp) {}
   };
   #endif
   #if defined (LGFX_FILESYSTEM_FFAT)
   template <>
-  struct DataWrapperT<fs::F_Fat> : public DataWrapperT<fs::FS> {
-    DataWrapperT(fs::FS* fs, fs::File* fp = nullptr) : DataWrapperT<fs::FS>(fs, fp) {}
+  struct DataWrapperT<::fs::F_Fat> : public DataWrapperT<::fs::FS> {
+    DataWrapperT(::fs::FS* fs, ::fs::File* fp = nullptr) : DataWrapperT<::fs::FS>(fs, fp) {}
   };
   #endif
  #endif
